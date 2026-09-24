@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\RoomStatus;
 use App\Enums\UserRole;
-use Illuminate\Http\Exceptions\HttpResponseException;
 use App\Managers\Hotel\AvailabilityManager;
 use App\Managers\Reservations\ReservationManager;
+use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\Role;
@@ -15,6 +15,7 @@ use App\Models\RoomBlock;
 use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Laravel\Passport\Passport;
 use Tests\TestCase;
 
@@ -68,6 +69,42 @@ class ReservationTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('data.source', 'TELEFON')
             ->assertJsonPath('data.guestName', 'Arben Hoxha');
+
+        $this->postJson('/api/reservations', [
+            'roomId' => $room->number,
+            'guestName' => 'Arben Hoxha',
+            'phonePrefix' => '+355',
+            'phone' => '69 111 2222',
+            'registerCustomer' => true,
+            'persons' => 2,
+            'checkIn' => '2026-10-02',
+            'nights' => 1,
+        ])->assertOk()
+            ->assertJsonPath('data.phonePrefix', '+355')
+            ->assertJsonPath('data.phone', '691112222');
+
+        $this->postJson('/api/reservations', [
+            'roomId' => $room->number,
+            'guestName' => 'Arben i njëjtë',
+            'phonePrefix' => '+355',
+            'phone' => '691112222',
+            'registerCustomer' => true,
+            'persons' => 1,
+            'checkIn' => '2026-10-10',
+            'nights' => 1,
+        ])->assertOk()
+            ->assertJsonPath('data.guestName', 'Arben i njëjtë');
+
+        $this->assertSame(1, Guest::query()->where('phone', '691112222')->count());
+
+        $this->postJson('/api/reservations', [
+            'roomId' => $room->number,
+            'guestName' => 'Pa regjistrim',
+            'registerCustomer' => true,
+            'persons' => 1,
+            'checkIn' => '2026-11-01',
+            'nights' => 1,
+        ])->assertStatus(422);
 
         $this->postJson('/api/reservations', [
             'roomId' => $room->number,

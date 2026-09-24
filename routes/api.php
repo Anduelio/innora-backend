@@ -11,7 +11,6 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\RoomBlockController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTypeController;
-use App\Http\Controllers\SyncController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -83,8 +82,4 @@ Route::middleware('auth:api')->group(function () {
     // Desk dashboard tile: reception may see outstanding totals without full reports.
     Route::get('/desk/outstanding', [ReportController::class, 'dashboard'])
         ->middleware('permission:folios.view|reports.view');
-
-    Route::get('/sync/status', [SyncController::class, 'status']);
-    Route::post('/sync/retry', [SyncController::class, 'retry']);
-    Route::post('/sync/fail', [SyncController::class, 'fail']);
 });

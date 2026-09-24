@@ -9,7 +9,6 @@ use App\Enums\UserRole;
 use App\Managers\Hotel\AvailabilityManager;
 use App\Managers\Reservations\ReservationManager;
 use App\Models\Property;
-use App\Models\Reservation;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
@@ -241,9 +240,11 @@ class RoomInventoryTest extends TestCase
         $this->putJson('/api/settings/hotel', [
             'checkInTime' => '14:00',
             'checkOutTime' => '11:00',
+            'currency' => 'ALL',
         ])->assertOk()
             ->assertJsonPath('data.checkInTime', '14:00')
-            ->assertJsonPath('data.checkOutTime', '11:00');
+            ->assertJsonPath('data.checkOutTime', '11:00')
+            ->assertJsonPath('data.currency', 'ALL');
     }
 
     /**

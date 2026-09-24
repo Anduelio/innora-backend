@@ -28,7 +28,7 @@ Beds and amenities live on the room type. Physical rooms inherit them. Channel i
 
 ## Channel credentials
 
-HotelRunner, SiteMinder, and Beds24 credentials are typed in Cilësimet and stored on `channel_connections.config_encrypted`. The API returns secrets masked. Only the public base URL of each provider may live in configuration. One property keeps one row per provider, and only one of those rows is active.
+Beds24 is the only channel configured for now. The catalog stays a list, so another provider can be added later. Credentials are typed in Cilësimet and stored on `channel_connections.config_encrypted`. The API returns secrets masked. Only the public base URL may live in configuration. One property keeps one row per provider, and only one of those rows is active.
 
 ## Folio
 

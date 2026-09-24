@@ -20,7 +20,9 @@ class StoreReservationRequest extends FormRequest
             'children' => ['nullable', 'integer', 'min:0', 'max:6'],
             'expectedArrival' => ['nullable', 'date_format:H:i'],
             'guestName' => ['required', 'string', 'max:120'],
-            'phone' => ['nullable', 'string', 'max:40'],
+            'phonePrefix' => ['nullable', 'string', 'regex:/^\+\d{1,4}$/', 'required_if:registerCustomer,true,1'],
+            'phone' => ['nullable', 'string', 'max:40', 'required_if:registerCustomer,true,1'],
+            'registerCustomer' => ['sometimes', 'boolean'],
             'persons' => ['required', 'integer', 'min:1', 'max:12'],
             'source' => ['sometimes', 'string', Rule::in(['DIREKT', 'TELEFON', 'WHATSAPP', 'RECEPSION'])],
             'checkIn' => ['required', 'date_format:Y-m-d'],
@@ -34,6 +36,9 @@ class StoreReservationRequest extends FormRequest
     {
         return [
             'source.in' => __('messages.reservations.invalid_source'),
+            'phonePrefix.required_if' => __('messages.reservations.phone_required_to_register'),
+            'phonePrefix.regex' => __('messages.reservations.phone_prefix_invalid'),
+            'phone.required_if' => __('messages.reservations.phone_required_to_register'),
         ];
     }
 }

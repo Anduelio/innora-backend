@@ -4,12 +4,12 @@ namespace App\Managers\Reservations;
 
 use App\Access\Visibility\PropertyVisibility;
 use App\Enums\OperationalStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Jobs\SyncAvailabilityJob;
 use App\Managers\Billing\FolioManager;
 use App\Managers\Hotel\AvailabilityManager;
-use App\Enums\PermissionEnum;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -64,7 +64,7 @@ class ReservationManager
             $room->load('roomType');
             $this->guardOccupancy($room->roomType, (int) $data['persons'], (int) ($data['children'] ?? 0));
             $this->guardFree($room, $checkIn, $checkOut);
-            $guest = $this->findOrCreateGuest($property, $data['guestName'], $data['phone'] ?? null);
+            $guest = $this->resolveGuest($property, $data);
 
             $reservation = Reservation::query()->create([
                 'property_id' => $property->id,
@@ -111,7 +111,7 @@ class ReservationManager
             }
         }
 
-        $updated = DB::transaction(function () use ($actor, $reservation, $mapped) {
+        $updated = DB::transaction(function () use ($actor, $reservation, $mapped, $data) {
             $reservation->load(['stay.room', 'guest', 'property', 'folio']);
             $stay = $reservation->stay;
             $checkIn = $mapped['check_in'] ?? $reservation->check_in->toDateString();
@@ -126,13 +126,15 @@ class ReservationManager
                 || isset($mapped['total_cents'])
                 || isset($mapped['room_number']);
 
-            if (isset($mapped['guest_name']) || array_key_exists('phone', $mapped)) {
-                $guest = $reservation->guest;
-                $guest->name = $mapped['guest_name'] ?? $guest->name;
-                if (array_key_exists('phone', $mapped)) {
-                    $guest->phone = $this->blankToNull($mapped['phone']);
-                }
-                $guest->save();
+            if (isset($mapped['guest_name']) || array_key_exists('phone', $data) || array_key_exists('phonePrefix', $data)) {
+                $guest = $this->resolveGuest($reservation->property, [
+                    'guestName' => $data['guestName'] ?? $reservation->guest->name,
+                    'phone' => array_key_exists('phone', $data) ? $data['phone'] : $reservation->guest->phone,
+                    'phonePrefix' => array_key_exists('phonePrefix', $data) ? $data['phonePrefix'] : $reservation->guest->phone_prefix,
+                    'registerCustomer' => $data['registerCustomer'] ?? false,
+                ], $reservation->guest);
+                $reservation->guest_id = $guest->id;
+                $reservation->setRelation('guest', $guest);
             }
 
             $reservation->fill([
@@ -396,7 +398,7 @@ class ReservationManager
                 $cursor = date('Y-m-d', strtotime($cursor.' +1 day'));
             }
 
-            $guest = $this->findOrCreateGuest($property, $data['guestName'], $data['phone'] ?? null);
+            $guest = $this->resolveGuest($property, $data);
             $created = Reservation::query()->create([
                 'property_id' => $property->id,
                 'guest_id' => $guest->id,
@@ -484,11 +486,29 @@ class ReservationManager
         return $room;
     }
 
-    private function findOrCreateGuest(Property $property, string $name, ?string $phone): Guest
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveGuest(Property $property, array $data, ?Guest $current = null): Guest
     {
-        $phone = $this->blankToNull($phone);
-        if ($phone !== null) {
-            $existing = Guest::query()->where('property_id', $property->id)->where('phone', $phone)->first();
+        $register = filter_var($data['registerCustomer'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $prefix = $this->normalizePrefix(isset($data['phonePrefix']) ? (string) $data['phonePrefix'] : null);
+        $rawPhone = isset($data['phone']) ? (string) $data['phone'] : null;
+        $national = $this->nationalPhone($rawPhone);
+        $storedPhone = $prefix === null ? $this->blankToNull($rawPhone) : $national;
+        $name = trim((string) $data['guestName']);
+
+        if ($register) {
+            if ($prefix === null || $national === null) {
+                $this->throwValidationError('phone', 'messages.reservations.phone_required_to_register');
+            }
+
+            $existing = Guest::query()
+                ->where('property_id', $property->id)
+                ->where('phone_prefix', $prefix)
+                ->where('phone', $national)
+                ->first();
+
             if ($existing !== null) {
                 $existing->name = $name;
                 $existing->save();
@@ -497,11 +517,52 @@ class ReservationManager
             }
         }
 
+        if ($current !== null) {
+            $current->fill([
+                'name' => $name,
+                'phone_prefix' => $prefix,
+                'phone' => $storedPhone,
+            ])->save();
+
+            return $current;
+        }
+
         return Guest::query()->create([
             'property_id' => $property->id,
             'name' => $name,
-            'phone' => $phone,
+            'phone_prefix' => $prefix,
+            'phone' => $storedPhone,
         ]);
+    }
+
+    private function findOrCreateGuest(Property $property, string $name, ?string $phone): Guest
+    {
+        return $this->resolveGuest($property, [
+            'guestName' => $name,
+            'phone' => $phone,
+            'registerCustomer' => false,
+        ]);
+    }
+
+    private function normalizePrefix(?string $prefix): ?string
+    {
+        $prefix = $this->blankToNull($prefix);
+        if ($prefix === null) {
+            return null;
+        }
+
+        if (! preg_match('/^\+\d{1,4}$/', $prefix)) {
+            $this->throwValidationError('phonePrefix', 'messages.reservations.phone_prefix_invalid');
+        }
+
+        return $prefix;
+    }
+
+    private function nationalPhone(?string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
+
+        return $digits === '' ? null : $digits;
     }
 
     private function writeStay(Reservation $reservation, Room $room, string $checkIn, string $checkOut): void

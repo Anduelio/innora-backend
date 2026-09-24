@@ -14,6 +14,7 @@ class GuestResource extends JsonResource
         return [
             'id' => (string) $this->id,
             'name' => $this->name,
+            'phonePrefix' => $this->phone_prefix,
             'phone' => $this->phone ?? '',
             'stays' => (int) ($this->stays_count ?? 0),
             'lastStay' => $this->last_stay ? substr((string) $this->last_stay, 0, 10) : null,

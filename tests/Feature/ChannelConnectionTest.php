@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserRole;
 use App\Models\ChannelConnection;
 use App\Models\Property;
 use App\Models\Role;
 use App\Models\User;
-use App\Enums\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Passport;
 use Tests\TestCase;
@@ -24,20 +24,25 @@ class ChannelConnectionTest extends TestCase
 
         $this->postJson('/api/channels', [
             'providerCode' => 'hotelrunner',
+            'credentials' => ['api_key' => 'nope', 'hotel_id' => 'HR-44'],
+        ])->assertStatus(422);
+
+        $this->postJson('/api/channels', [
+            'providerCode' => 'beds24',
             'isActive' => true,
             'credentials' => [
                 'api_key' => $secret,
-                'hotel_id' => 'HR-44',
+                'prop_id' => '900',
             ],
         ])->assertOk()
-            ->assertJsonPath('data.providerCode', 'hotelrunner')
-            ->assertJsonPath('data.credentials.hotel_id', 'HR-44')
+            ->assertJsonPath('data.providerCode', 'beds24')
+            ->assertJsonPath('data.credentials.prop_id', '900')
             ->assertJsonPath('data.credentials.api_key', '••••••••alue')
             ->assertJsonMissing(['api_key' => $secret]);
 
         $stored = ChannelConnection::query()->firstOrFail();
         $this->assertSame($secret, $stored->config_encrypted['api_key']);
-        $this->assertSame('https://app.hotelrunner.com', $stored->config_encrypted['base_url']);
+        $this->assertSame('https://beds24.com/api/v2', $stored->config_encrypted['base_url']);
         $this->assertStringNotContainsString($secret, (string) $stored->getRawOriginal('config_encrypted'));
 
         $this->getJson('/api/channels')
@@ -52,26 +57,19 @@ class ChannelConnectionTest extends TestCase
         Passport::actingAs($user);
 
         $this->postJson('/api/channels', [
-            'providerCode' => 'hotelrunner',
-            'credentials' => ['api_key' => 'secret-token-value', 'hotel_id' => 'HR-44'],
+            'providerCode' => 'beds24',
+            'credentials' => ['api_key' => 'secret-token-value', 'prop_id' => '900'],
         ])->assertOk();
-
-        $this->postJson('/api/channels', [
-            'providerCode' => 'hotelrunner',
-            'credentials' => ['hotel_id' => 'HR-99', 'api_key' => '••••••••alue'],
-        ])->assertOk()
-            ->assertJsonPath('data.credentials.hotel_id', 'HR-99');
-
-        $this->assertSame('secret-token-value', ChannelConnection::query()->first()->config_encrypted['api_key']);
 
         $this->postJson('/api/channels', [
             'providerCode' => 'beds24',
-            'isActive' => true,
-            'credentials' => ['api_key' => 'beds-secret-key', 'prop_id' => '900'],
-        ])->assertOk();
+            'credentials' => ['prop_id' => '901', 'api_key' => '••••••••alue'],
+        ])->assertOk()
+            ->assertJsonPath('data.credentials.prop_id', '901')
+            ->assertJsonPath('data.isActive', true);
 
-        $this->assertFalse((bool) ChannelConnection::query()->where('provider_code', 'hotelrunner')->value('is_active'));
-        $this->assertTrue((bool) ChannelConnection::query()->where('provider_code', 'beds24')->value('is_active'));
+        $this->assertSame('secret-token-value', ChannelConnection::query()->first()->config_encrypted['api_key']);
+        $this->assertSame(1, ChannelConnection::query()->count());
     }
 
     public function test_a_connection_from_another_property_cannot_be_removed(): void
@@ -81,11 +79,10 @@ class ChannelConnectionTest extends TestCase
         Passport::actingAs($owner);
 
         $created = $this->postJson('/api/channels', [
-            'providerCode' => 'siteminder',
+            'providerCode' => 'beds24',
             'credentials' => [
-                'username' => 'desk',
-                'password' => 'siteminder-pass',
-                'hotel_code' => 'SM1',
+                'api_key' => 'beds-secret-key',
+                'prop_id' => '900',
             ],
         ])->assertOk()->json('data.id');
 

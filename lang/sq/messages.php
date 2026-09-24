@@ -41,6 +41,8 @@ return [
         'not_found' => 'Nuk u gjet.',
         'invalid_dates' => 'Datat e qëndrimit nuk janë të vlefshme.',
         'invalid_source' => 'Booking.com nuk shkruhet këtu. Zgjidhni telefon, recepsion, WhatsApp ose direkt.',
+        'phone_required_to_register' => 'Prefiksi dhe numri i telefonit kërkohen për të regjistruar klientin.',
+        'phone_prefix_invalid' => 'Zgjidhni një prefiks telefoni të vlefshëm.',
         'occupancy_exceeded' => 'Ky tip dhome nuk i mban kaq persona.',
         'room_not_assigned' => 'Caktoni një dhomë para hyrjes.',
         'room_not_ready' => 'Dhoma :room nuk është ende gati.',
@@ -62,7 +64,7 @@ return [
     'channels' => [
         'saved' => 'Lidhja e kanalit u ruajt.',
         'removed' => 'Lidhja e kanalit u hoq.',
-        'unknown_provider' => 'Zgjidhni HotelRunner, SiteMinder ose Beds24.',
+        'unknown_provider' => 'Zgjidhni Beds24.',
         'not_found' => 'Kjo lidhje nuk u gjet.',
         'credential_required' => 'Fusha :field është e detyrueshme.',
     ],

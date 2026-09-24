@@ -16,7 +16,9 @@ class UpdateReservationRequest extends FormRequest
         return [
             'roomId' => ['sometimes', 'string'],
             'guestName' => ['sometimes', 'string', 'max:120'],
+            'phonePrefix' => ['sometimes', 'nullable', 'string', 'regex:/^\+\d{1,4}$/'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'registerCustomer' => ['sometimes', 'boolean'],
             'persons' => ['sometimes', 'integer', 'min:1', 'max:12'],
             'checkIn' => ['sometimes', 'date_format:Y-m-d'],
             'checkOut' => ['sometimes', 'date_format:Y-m-d'],

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateHotelSettingsRequest extends FormRequest
 {
@@ -16,6 +17,7 @@ class UpdateHotelSettingsRequest extends FormRequest
         return [
             'checkInTime' => ['required', 'date_format:H:i'],
             'checkOutTime' => ['required', 'date_format:H:i'],
+            'currency' => ['sometimes', 'string', Rule::in(['EUR', 'ALL'])],
         ];
     }
 }

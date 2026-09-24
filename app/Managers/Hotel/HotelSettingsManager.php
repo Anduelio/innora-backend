@@ -25,6 +25,7 @@ class HotelSettingsManager
         $property->fill([
             'default_check_in_time' => $data['checkInTime'] ?? $property->default_check_in_time,
             'default_check_out_time' => $data['checkOutTime'] ?? $property->default_check_out_time,
+            'currency' => $data['currency'] ?? $property->currency,
         ])->save();
 
         return $property;

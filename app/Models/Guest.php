@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Guest extends Model
 {
-    protected $fillable = ['property_id', 'name', 'phone'];
+    protected $fillable = ['property_id', 'name', 'phone_prefix', 'phone'];
 
     public function property(): BelongsTo
     {

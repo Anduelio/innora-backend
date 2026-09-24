@@ -41,6 +41,8 @@ return [
         'not_found' => 'Not found.',
         'invalid_dates' => 'The stay dates are not valid.',
         'invalid_source' => 'Booking.com is not entered here. Choose phone, reception, WhatsApp, or direct.',
+        'phone_required_to_register' => 'Phone prefix and phone are required to register a customer.',
+        'phone_prefix_invalid' => 'Choose a valid phone prefix.',
         'occupancy_exceeded' => 'This room type cannot take that many guests.',
         'room_not_assigned' => 'Assign a room before check-in.',
         'room_not_ready' => 'Room :room is not ready yet.',
@@ -62,7 +64,7 @@ return [
     'channels' => [
         'saved' => 'Channel connection saved.',
         'removed' => 'Channel connection removed.',
-        'unknown_provider' => 'Choose HotelRunner, SiteMinder, or Beds24.',
+        'unknown_provider' => 'Choose Beds24.',
         'not_found' => 'That connection was not found.',
         'credential_required' => 'The :field field is required.',
     ],

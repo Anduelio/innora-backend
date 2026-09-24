@@ -1,0 +1,45 @@
+---
+description: Manager list() must use visibility + pipeline filters
+globs: app/Managers/**/*.php
+alwaysApply: false
+---
+
+# Manager `list()` pattern
+
+Do **not** put ad-hoc `if (! empty($filters[…])) { $query->where(…) }` blocks inside Managers.
+
+## Required shape
+
+```php
+public function list(User $actor, array $filters): Builder
+{
+    $query = $this->visibility->list(
+        Model::query()->with(/* … */),
+        $actor,
+    );
+
+    return $this->applyPipeline($query, $filters, [
+        SomeFilter::class,
+        // …
+    ]);
+}
+```
+
+1. **Visibility first** — assign the return: `$query = $this->visibility->list($query, $actor)` (or pass the base query inline). Never discard the Builder.
+2. **Filters via pipeline** — one class per query param under `app/Pipelines/Filters/{Domain}/`, using `PipelineHandler::applyPipeline`.
+3. Mirror existing domains: `Reservation`, `Order`, `Booking`, `Customer`, `Event`.
+
+## Forbidden
+
+```php
+// antipattern
+if (! empty($filters['status'])) {
+    $query->where('status', $filters['status']);
+}
+```
+
+## When adding a new listable resource
+
+- Add `*VisibilityPolicy` under `app/Access/Visibility/` when row access is role/outlet/owner scoped.
+- Add filter classes; wire them in `list()` only through `applyPipeline`.
+- Keep FormRequest validation for the filter keys; do not re-validate in the Manager.

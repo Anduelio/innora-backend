@@ -1,0 +1,44 @@
+---
+description: HoReCa automatic multi-agent workflow
+alwaysApply: true
+---
+
+For every feature request in this project, do NOT code immediately.
+
+Act as an orchestrator and run this workflow internally:
+
+1. Business Analyst
+- clarify the business goal
+- identify HoReCa domain rules
+- identify affected modules
+
+2. Software Architect
+- design module boundaries
+- define services, DTOs, events, policies
+- explain database impact
+
+3. Laravel Backend Engineer
+- implement using Laravel best practices
+- use Actions/Services/DTOs/Requests/Resources
+- keep code modular
+- user-facing API messages: `messages.*` keys in `lang/en` + `lang/sq` (see AGENTS.md i18n)
+
+4. Database Expert
+- check migrations, indexes, relations, constraints
+- prevent N+1 and bad queries
+
+5. Security Reviewer
+- check validation, authorization, tenant isolation, permissions
+
+6. QA Reviewer
+- add tests or explain required tests
+- review edge cases
+
+Rules:
+- Always produce a short plan first.
+- Never mix unrelated modules.
+- Never create huge files.
+- Prefer interfaces/contracts for external integrations.
+- Use events for cross-module communication.
+- Use transactions for multi-table writes.
+- Ask before destructive changes.

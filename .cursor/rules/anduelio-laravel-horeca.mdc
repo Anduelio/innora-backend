@@ -1,0 +1,145 @@
+# Anduelio's Cursor Setup for Laravel and HoReCa Projects
+
+This package contains a production-oriented Cursor Project Rule tailored to:
+
+- Laravel backend development
+- multi-tenant HoReCa applications
+- POS, BOM, inventory, warehouses, hotels, and orders
+- payments and external integrations
+- your preferred Actions, Services, DTOs, Requests, Resources, Events, Policies, and tests
+- avoiding both low-quality shortcuts and unnecessary overengineering
+
+## Installation
+
+Copy this file into your repository:
+
+```text
+.cursor/rules/anduelio-laravel-horeca.mdc
+```
+
+Commit it to Git when the rule should be shared by the project team.
+
+The rule is configured with:
+
+```yaml
+alwaysApply: true
+```
+
+This makes it active throughout the repository. If it becomes too heavy for a smaller project, change it to a manually or contextually applied rule through Cursor's Rules interface.
+
+## Recommended Model Workflow
+
+### Normal feature
+
+1. Open Plan Mode with your high-thinking model.
+2. Ask it to inspect the relevant code and produce a proportional implementation plan.
+3. Review the plan and remove unnecessary architecture.
+4. Switch to your fast coding model to execute it.
+5. Return to the high-thinking model for final code, security, database, and tenant-isolation review.
+6. Let the coding model apply the precise review findings.
+
+### High-risk feature
+
+Keep the high-thinking model for planning and implementation when the feature includes:
+
+- payments or refunds
+- inventory consumption and concurrency
+- accounting or Financa 5 synchronization
+- fiscalization
+- webhooks and idempotency
+- tenant or permission restructuring
+- risky migrations
+- difficult production incidents
+
+### Small task
+
+Use the coding model directly for:
+
+- basic CRUD
+- simple validation changes
+- API Resources
+- factories and ordinary tests
+- clear mechanical refactors
+
+The project rule will still require it to inspect existing conventions and avoid unrelated changes.
+
+## Strong Feature Prompt
+
+Use this prompt with Plan Mode:
+
+```text
+Analyze this feature using the repository's Cursor rules.
+
+First inspect all relevant existing code and conventions. Produce a concise implementation plan covering business rules, affected modules, database impact, authorization, tenant isolation, transaction boundaries, edge cases, and required tests.
+
+Do not code yet. Do not redesign unrelated architecture. Prefer the simplest implementation that safely satisfies the requirement.
+
+Feature:
+[PASTE FEATURE HERE]
+```
+
+After reviewing the plan, use:
+
+```text
+Execute the approved plan exactly and follow the repository's Cursor rules.
+
+Work step by step. Preserve existing architecture and API contracts. Do not perform unrelated refactors. Run the narrowest relevant tests and quality checks. If the plan must change because of discovered codebase facts, explain the deviation before making a broad architectural change.
+```
+
+## Final Review Prompt
+
+```text
+Review the completed implementation as a senior Laravel architect, database engineer, security reviewer, and QA reviewer.
+
+Inspect the actual diff and relevant surrounding code. Check:
+- correctness against the requirement
+- consistency with existing project architecture
+- authorization and tenant isolation
+- validation and API compatibility
+- transactions, concurrency, and idempotency
+- money and inventory correctness
+- database constraints, indexes, and N+1 queries
+- queues, events, webhooks, retries, and after-commit behavior
+- security and sensitive logging
+- missing tests and edge cases
+
+Do not rewrite code merely for style. Return only concrete findings, ordered by severity, with exact file references and recommended corrections. State clearly when no blocking issue is found.
+```
+
+## Bug-Fixing Prompt
+
+```text
+Investigate this bug using evidence from the repository, logs, and execution path.
+
+Do not guess or broadly refactor. Identify the root cause, propose the smallest safe correction, implement it, and add a regression test when practical. Check environment differences, authorization, tenant context, database state, queues, caches, and recent changes when relevant.
+
+Bug:
+[PASTE BUG HERE]
+```
+
+## Migration Prompt
+
+```text
+Design and implement this database change safely for an existing production system.
+
+Inspect the current schema, data assumptions, relations, indexes, casts, and query patterns. Consider existing rows, lock duration, rollback behavior, nullability, constraints, deployment order, backward compatibility, and required data backfills.
+
+Do not delete or transform production data destructively without explicit approval.
+
+Change:
+[PASTE CHANGE HERE]
+```
+
+## Keeping Performance High
+
+Do not put every project detail into one permanent rule. Keep the always-active rule focused on universal engineering standards. Create smaller context-specific `.mdc` rules later for modules such as:
+
+- `payments.mdc`
+- `inventory-bom.mdc`
+- `pos-orders.mdc`
+- `hotel-reservations.mdc`
+- `financa5-integration.mdc`
+
+This prevents unrelated instructions from consuming context and confusing the agent.
+
+Update the rule whenever Cursor repeatedly makes the same mistake. Add a precise rule describing the expected behavior, not a long story about the mistake.

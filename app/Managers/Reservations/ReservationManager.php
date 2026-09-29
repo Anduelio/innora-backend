@@ -18,8 +18,15 @@ use App\Models\Room;
 use App\Models\RoomEvent;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Pipelines\Filters\Reservation\ArrivingOnFilter;
+use App\Pipelines\Filters\Reservation\DepartingOnFilter;
+use App\Pipelines\Filters\Reservation\InHouseOnFilter;
 use App\Pipelines\Filters\Reservation\OverlapFromFilter;
 use App\Pipelines\Filters\Reservation\OverlapToFilter;
+use App\Pipelines\Filters\Reservation\QueryFilter;
+use App\Pipelines\Filters\Reservation\SearchFilter;
+use App\Pipelines\Filters\Reservation\SourceFilter;
+use App\Pipelines\Filters\Reservation\StatusFilter;
 use App\Traits\HasMessages;
 use App\Traits\PipelineHandler;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,13 +46,23 @@ class ReservationManager
     public function list(User $actor, array $filters): Builder
     {
         $query = $this->visibility->list(
-            Reservation::query()->with(['guest', 'stay.room.roomType', 'stay.roomType', 'folio']),
+            Reservation::query()
+                ->with(['guest', 'stay.room.roomType', 'stay.roomType', 'folio'])
+                ->orderBy('check_in')
+                ->orderBy('id'),
             $actor,
         );
 
         return $this->applyPipeline($query, $filters, [
             OverlapFromFilter::class,
             OverlapToFilter::class,
+            SearchFilter::class,
+            QueryFilter::class,
+            StatusFilter::class,
+            SourceFilter::class,
+            ArrivingOnFilter::class,
+            DepartingOnFilter::class,
+            InHouseOnFilter::class,
         ]);
     }
 
@@ -95,6 +112,15 @@ class ReservationManager
     public function update(User $actor, Reservation $reservation, array $data): Reservation
     {
         $this->assertOwned($actor, $reservation);
+        $reservation->load(['folio', 'guest', 'property', 'stay.room']);
+        if (! in_array($reservation->status, [ReservationStatus::Pending, ReservationStatus::Confirmed, ReservationStatus::CheckedIn], true)) {
+            $this->throwValidationError('status', 'messages.reservations.cannot_edit');
+        }
+        $folio = $reservation->folio ?? $this->folios->forReservation($reservation);
+        if (! $folio->isOpen()) {
+            $this->throwValidationError('folio', 'messages.reservations.folio_closed');
+        }
+
         $mapped = [];
         foreach ([
             'roomId' => 'room_number',
@@ -262,11 +288,21 @@ class ReservationManager
     public function cancel(User $actor, Reservation $reservation): Reservation
     {
         $this->assertOwned($actor, $reservation);
+        if (! in_array($reservation->status, [ReservationStatus::Pending, ReservationStatus::Confirmed], true)) {
+            $this->throwValidationError('status', 'messages.reservations.cancel_not_allowed');
+        }
+
+        $reservation->load('folio');
+        $folio = $reservation->folio;
+        if ($folio !== null && (int) $folio->payments_cents > 0) {
+            $this->throwValidationError('payments', 'messages.reservations.cancel_has_payments');
+        }
+
         $reservation->status = ReservationStatus::Cancelled;
         $reservation->save();
         SyncAvailabilityJob::dispatch($reservation->property_id)->afterCommit();
 
-        return $reservation->load(['guest', 'stay.room.roomType']);
+        return $reservation->load(['guest', 'stay.room.roomType', 'folio']);
     }
 
     public function importExternal(User $actor, array $payload): Reservation
@@ -498,22 +534,27 @@ class ReservationManager
         $storedPhone = $prefix === null ? $this->blankToNull($rawPhone) : $national;
         $name = trim((string) $data['guestName']);
 
-        if ($register) {
-            if ($prefix === null || $national === null) {
-                $this->throwValidationError('phone', 'messages.reservations.phone_required_to_register');
-            }
+        if ($register && ($prefix === null || $national === null)) {
+            $this->throwValidationError('phone', 'messages.reservations.phone_required_to_register');
+        }
 
+        if ($prefix !== null && $national !== null) {
             $existing = Guest::query()
                 ->where('property_id', $property->id)
                 ->where('phone_prefix', $prefix)
                 ->where('phone', $national)
+                ->when($current, fn ($query) => $query->whereKeyNot($current->id))
                 ->first();
 
             if ($existing !== null) {
-                $existing->name = $name;
-                $existing->save();
+                if ($register || $current === null) {
+                    $existing->name = $name;
+                    $existing->save();
 
-                return $existing;
+                    return $existing;
+                }
+
+                $this->throwValidationError('phone', 'messages.guests.phone_taken');
             }
         }
 

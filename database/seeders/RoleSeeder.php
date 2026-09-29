@@ -21,7 +21,7 @@ class RoleSeeder extends Seeder
         $reception = Role::query()->where('code', UserRole::Reception->value)->first();
 
         User::query()
-            ->where('email', 'recepsion@viladea.al')
+            ->where('email', 'recepsion@innora.al')
             ->whereNull('role_id')
             ->update(['role_id' => $reception->id]);
     }

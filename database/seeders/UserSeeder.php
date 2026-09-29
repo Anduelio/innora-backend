@@ -21,22 +21,26 @@ class UserSeeder extends Seeder
 
         $users = [
             [
-                'email' => 'owner@viladea.al',
+                'email' => 'owner@innora.al',
+                'legacy' => 'owner@viladea.al',
                 'name' => 'Pronari',
                 'role' => UserRole::Owner,
             ],
             [
-                'email' => 'pronar@viladea.al',
+                'email' => 'pronar@innora.al',
+                'legacy' => 'pronar@viladea.al',
                 'name' => 'Pronari',
                 'role' => UserRole::Owner,
             ],
             [
-                'email' => 'reception@viladea.al',
+                'email' => 'reception@innora.al',
+                'legacy' => 'reception@viladea.al',
                 'name' => 'Recepsioni',
                 'role' => UserRole::Reception,
             ],
             [
-                'email' => 'recepsion@viladea.al',
+                'email' => 'recepsion@innora.al',
+                'legacy' => 'recepsion@viladea.al',
                 'name' => 'Recepsioni',
                 'role' => UserRole::Reception,
             ],
@@ -44,6 +48,11 @@ class UserSeeder extends Seeder
 
         foreach ($users as $row) {
             $roleId = Role::query()->where('code', $row['role']->value)->value('id');
+            $legacy = User::query()->where('email', $row['legacy'])->first();
+            if ($legacy !== null && ! User::query()->where('email', $row['email'])->exists()) {
+                $legacy->email = $row['email'];
+                $legacy->save();
+            }
 
             User::query()->updateOrCreate(
                 ['email' => $row['email']],

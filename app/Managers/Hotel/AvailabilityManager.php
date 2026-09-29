@@ -31,6 +31,29 @@ class AvailabilityManager
             && ! $this->hasBlock($room, $checkIn, $checkOut);
     }
 
+    public function isOccupiedOn(Room $room, string $day): bool
+    {
+        $next = date('Y-m-d', strtotime($day.' +1 day'));
+
+        return $this->hasStay($room, $day, $next, null);
+    }
+
+    public function hasCurrentOrFutureStay(Room $room, ?string $fromDay = null): bool
+    {
+        $from = $fromDay ?? now()->toDateString();
+
+        return ReservationRoom::query()
+            ->where('room_id', $room->id)
+            ->whereDate('check_out', '>', $from)
+            ->whereHas('reservation', function ($query) {
+                $query->whereNotIn('status', [
+                    ReservationStatus::Cancelled->value,
+                    ReservationStatus::NoShow->value,
+                ]);
+            })
+            ->exists();
+    }
+
     public function firstFreeRoom(Property $property, RoomType $type, string $checkIn, string $checkOut): ?Room
     {
         $rooms = Room::query()

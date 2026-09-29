@@ -34,11 +34,11 @@ class PassportAuthTest extends TestCase
         $this->seedRolesAndUser();
 
         $response = $this->postJson('/api/login', [
-            'email' => 'recepsion@viladea.al',
+            'email' => 'recepsion@innora.al',
             'password' => UserSeeder::DEFAULT_PASSWORD,
         ])->assertOk();
 
-        $response->assertJsonPath('data.user.email', 'recepsion@viladea.al');
+        $response->assertJsonPath('data.user.email', 'recepsion@innora.al');
         $response->assertJsonStructure([
             'data' => [
                 'user' => ['name', 'email', 'role', 'permissions'],
@@ -51,7 +51,7 @@ class PassportAuthTest extends TestCase
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/me')
             ->assertOk()
-            ->assertJsonPath('data.email', 'recepsion@viladea.al');
+            ->assertJsonPath('data.email', 'recepsion@innora.al');
     }
 
     public function test_change_password_requires_current_password(): void
@@ -86,7 +86,7 @@ class PassportAuthTest extends TestCase
 
         return User::query()->create([
             'name' => 'Recepsioni',
-            'email' => 'recepsion@viladea.al',
+            'email' => 'recepsion@innora.al',
             'password' => UserSeeder::DEFAULT_PASSWORD,
             'property_id' => $property->id,
             'role_id' => Role::query()->where('code', UserRole::Reception->value)->value('id'),

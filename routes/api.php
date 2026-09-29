@@ -43,6 +43,10 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/rooms/{number}/blocks', [RoomController::class, 'block']);
     Route::delete('/room-blocks/{roomBlock}', [RoomBlockController::class, 'destroy']);
     Route::get('/guests', [GuestController::class, 'index']);
+    Route::post('/guests', [GuestController::class, 'store']);
+    Route::get('/guests/{guest}', [GuestController::class, 'show']);
+    Route::put('/guests/{guest}', [GuestController::class, 'update']);
+    Route::delete('/guests/{guest}', [GuestController::class, 'destroy']);
 
     Route::get('/reservations', [ReservationController::class, 'index']);
     Route::post('/reservations', [ReservationController::class, 'store']);

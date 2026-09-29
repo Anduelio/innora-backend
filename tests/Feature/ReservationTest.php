@@ -6,6 +6,7 @@ use App\Enums\RoomStatus;
 use App\Enums\UserRole;
 use App\Managers\Hotel\AvailabilityManager;
 use App\Managers\Reservations\ReservationManager;
+use App\Models\FolioItem;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -115,6 +116,69 @@ class ReservationTest extends TestCase
             'nights' => 1,
         ])->assertStatus(422)
             ->assertJsonPath('message', 'Booking.com nuk shkruhet këtu. Zgjidhni telefon, recepsion, WhatsApp ose direkt.');
+    }
+
+    public function test_cancel_and_edit_are_refused_after_check_in_or_payment(): void
+    {
+        [$user, $room] = $this->desk();
+        Passport::actingAs($user);
+
+        $created = $this->postJson('/api/reservations', [
+            'roomId' => $room->number,
+            'guestName' => 'Edit Guard',
+            'persons' => 1,
+            'checkIn' => '2026-09-21',
+            'nights' => 2,
+            'totalCents' => 20000,
+        ])->assertOk();
+
+        $id = $created->json('data.id');
+        $folioId = $created->json('data.folioId');
+
+        $this->postJson("/api/folios/{$folioId}/payments", [
+            'method' => 'cash',
+            'amountCents' => 5000,
+        ])->assertOk();
+
+        $this->postJson("/api/reservations/{$id}/cancel")->assertStatus(422);
+
+        $clean = $this->postJson('/api/reservations', [
+            'roomId' => $room->number,
+            'guestName' => 'In House',
+            'persons' => 1,
+            'checkIn' => '2026-10-01',
+            'nights' => 1,
+            'totalCents' => 10000,
+        ])->assertOk();
+        $cleanId = $clean->json('data.id');
+        $cleanFolio = $clean->json('data.folioId');
+        $this->postJson("/api/folios/{$cleanFolio}/payments", [
+            'method' => 'cash',
+            'amountCents' => 10000,
+        ])->assertOk();
+        $this->postJson("/api/reservations/{$cleanId}/check-in")->assertOk();
+        $this->postJson("/api/reservations/{$cleanId}/cancel")->assertStatus(422);
+
+        $this->postJson("/api/reservations/{$cleanId}/check-out")->assertOk();
+        $this->patchJson("/api/reservations/{$cleanId}", [
+            'guestName' => 'Too Late',
+        ])->assertStatus(422);
+
+        $owner = User::factory()->create([
+            'property_id' => $user->property_id,
+            'role_id' => Role::query()->firstOrCreate(
+                ['code' => UserRole::Owner->value],
+                ['name' => UserRole::Owner->label()],
+            )->id,
+        ]);
+        Passport::actingAs($owner);
+        $roomCharge = FolioItem::query()
+            ->where('folio_id', $folioId)
+            ->where('is_room_charge', true)
+            ->firstOrFail();
+        $this->postJson("/api/folio-items/{$roomCharge->id}/void", [
+            'reason' => 'manual',
+        ])->assertStatus(422);
     }
 
     public function test_checkout_morning_is_free_and_cancel_restores_the_room(): void
@@ -263,7 +327,7 @@ class ReservationTest extends TestCase
                 ['code' => UserRole::Reception->value],
                 ['name' => UserRole::Reception->label()],
             )->id,
-            'email' => 'recepsion@viladea.al',
+            'email' => 'recepsion@innora.al',
         ]);
 
         return [$user, $room, $type];

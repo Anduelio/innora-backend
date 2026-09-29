@@ -120,7 +120,11 @@ class RoomManager
             }
         }
         if (array_key_exists('isActive', $data)) {
-            $room->is_active = (bool) $data['isActive'];
+            $active = (bool) $data['isActive'];
+            if (! $active && $this->availability->hasCurrentOrFutureStay($room)) {
+                $this->throwValidationError('isActive', 'messages.rooms.cannot_deactivate_with_stays');
+            }
+            $room->is_active = $active;
             $room->status = $room->is_active ? RoomStatus::Active : RoomStatus::OutOfService;
         }
         $room->save();
@@ -132,6 +136,10 @@ class RoomManager
     {
         $this->assertOwned($actor, $room);
         $next = OperationalStatus::from($status);
+        $today = now()->toDateString();
+        if ($next === OperationalStatus::OutOfOrder && $this->availability->isOccupiedOn($room, $today)) {
+            $this->throwValidationError('operationalStatus', 'messages.rooms.cannot_out_of_order_while_occupied');
+        }
         $previous = $room->operational_status;
         $room->operational_status = $next;
         if ($next === OperationalStatus::OutOfOrder) {

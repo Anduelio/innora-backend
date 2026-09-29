@@ -73,6 +73,10 @@ class ChargeManager
             $this->throwValidationError('charge', 'messages.folios.charge_already_voided');
         }
 
+        if ($item->is_room_charge) {
+            $this->throwValidationError('charge', 'messages.folios.cannot_void_room_charge');
+        }
+
         if (trim($reason) === '') {
             $this->throwValidationError('reason', 'messages.folios.void_reason_required');
         }

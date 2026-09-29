@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AssignReservationRequest;
+use App\Http\Requests\IndexReservationRequest;
 use App\Http\Requests\StoreReservationRequest;
 use App\Http\Requests\UpdateReservationRequest;
 use App\Http\Resources\ReservationResource;
@@ -15,13 +16,9 @@ class ReservationController extends Controller
 {
     public function __construct(private readonly ReservationManager $reservations) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexReservationRequest $request): JsonResponse
     {
-        $query = $this->reservations->list($request->user(), $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-            'no_pagination' => ['nullable'],
-        ]));
+        $query = $this->reservations->list($request->user(), $request->validated());
 
         return $this->getJsonResponse($this->fetchResults($query), ReservationResource::class);
     }

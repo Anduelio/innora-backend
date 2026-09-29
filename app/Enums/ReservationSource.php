@@ -31,4 +31,41 @@ enum ReservationSource: string
             default => self::Direct,
         };
     }
+
+    /**
+     * Stored values. Desk labels are normalized to these before validation.
+     *
+     * @return list<string>
+     */
+    public static function filterValues(): array
+    {
+        return array_map(fn (self $case) => $case->value, self::cases());
+    }
+
+    public static function canonicalFilter(string $value): string
+    {
+        return self::fromFilter($value)?->value ?? trim($value);
+    }
+
+    public static function fromFilter(string $value): ?self
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $direct = self::tryFrom($trimmed) ?? self::tryFrom(strtolower($trimmed));
+        if ($direct !== null) {
+            return $direct;
+        }
+
+        return match (strtoupper($trimmed)) {
+            'BOOKING', 'BOOKING.COM' => self::BookingCom,
+            'DIREKT', 'DIRECT' => self::Direct,
+            'TELEFON', 'PHONE' => self::Phone,
+            'WHATSAPP' => self::WhatsApp,
+            'RECEPSION', 'RECEPTION', 'WALK_IN', 'WALK-IN', 'WALKIN' => self::WalkIn,
+            default => null,
+        };
+    }
 }

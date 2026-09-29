@@ -247,6 +247,32 @@ class RoomInventoryTest extends TestCase
             ->assertJsonPath('data.currency', 'ALL');
     }
 
+    public function test_occupied_room_cannot_go_out_of_order_or_deactivate_with_future_stay(): void
+    {
+        [$user, $type, $room] = $this->hotel(true);
+        Passport::actingAs($user);
+        $manager = app(ReservationManager::class);
+
+        $stay = $manager->create($user, [
+            'roomId' => $room->number,
+            'guestName' => 'Ana',
+            'persons' => 1,
+            'checkIn' => now()->toDateString(),
+            'nights' => 2,
+            'totalCents' => 10000,
+        ]);
+
+        $this->postJson('/api/reservations/'.$stay->id.'/check-in')->assertOk();
+
+        $this->postJson('/api/rooms/'.$room->number.'/status', [
+            'operationalStatus' => 'out_of_order',
+        ])->assertStatus(422);
+
+        $this->putJson('/api/rooms/'.$room->number, [
+            'isActive' => false,
+        ])->assertStatus(422);
+    }
+
     /**
      * @return array{0: User, 1: RoomType, 2?: Room}
      */
